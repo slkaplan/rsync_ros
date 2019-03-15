@@ -10,7 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
 )
 
-
 ################################################
 ## Declare ROS messages, services and actions ##
 ################################################
@@ -24,6 +23,7 @@ add_service_files(
     FILES
     RsyncService.srv
 )
+catkin_python_setup()
 
 generate_messages(
  DEPENDENCIES
@@ -54,4 +54,4 @@ include_directories(
 ## Install ##
 #############
 
-catkin_install_python(PROGRAMS src/rsync_server_node.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+catkin_install_python(PROGRAMS src/rsync_ros/rsync_server_node.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
