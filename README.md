@@ -12,18 +12,27 @@ An RsyncAction goal could be sent once a robot has reached a certain state. A fi
 
 ## Usage
 
-### To start the server
+### To start the action server
 `rosrun rsync_ros rsync_server_node.py`
 
+### To start the Service server
+`roslaunch rsync_ros rsync_ros_node.launch`
+
 #### CLI Actionlib Client Example
-scripts/rsync_client_example.py, a simple client based on the actionlib_tutorials [simple actionlib client](http://wiki.ros.org/actionlib_tutorials/Tutorials/Writing%20a%20Simple%20Action%20Client%20%28Python%29).
+examples/rsync_client_example.py, a simple client based on the actionlib_tutorials [simple actionlib client](http://wiki.ros.org/actionlib_tutorials/Tutorials/Writing%20a%20Simple%20Action%20Client%20%28Python%29).
+
+#### CLI Service Client Example
+TODO
 
 ##### Local transfer
 `rosrun rsync_ros rsync_client_example.py -avzp ~/a_file.txt ~/file_dest.txt`
 
-##### Remote transfer
-You will first need to set up ssh keys for the remote machine, see this [tutorial](https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys--2)  
+##### Remote transfer using Action 
+You will first need to set up ssh keys for the remote machine, see this [tutorial](https://linuxize.com/post/how-to-setup-passwordless-ssh-login/)  
 `rosrun rsync_ros rsync_client_example.py -avzp ~/a_file.txt ssh_user@remote_host:~/file_dest.txt`
+
+##### Remote transfer using Action 
+TODO
 
 ## Choosing Rysnc Arguments
 The server passes all arguments listed in rsync_args to Rsync, although not all of the Rsync arguments have been tested. If you're unfamiliar with RSync, have a look at the [manual](http://linux.die.net/man/1/rsync) to see the full list of arguments.
@@ -84,4 +93,16 @@ bool sync_success #returns true if the file(s) synced correctly
 #Feedback
 float32 percent_complete
 int64 transfer_rate #in bytes/second
+```
+## Simple Python Service example
+TODO 
+## Rsync Service Definition
+```
+string local_path
+string target_user
+string target_ip
+string target_path
+string options
+---
+bool success
 ```
