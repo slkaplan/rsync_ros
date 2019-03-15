@@ -35,8 +35,8 @@
 import re
 from subprocess import Popen, PIPE
 
-class Rsync():
 
+class Rsync:
     def __init__(self, rsync_args, source, dest, progress_callback=None):
         self.rsync_args = rsync_args
         self.source = source
@@ -44,40 +44,46 @@ class Rsync():
         self.percent_complete = 0
         self.progress_callback = progress_callback
         self.transfer_rate = 0
+        self.line = None
 
         self.stdout_block = ''
         self.stderr_block = ''
     
     def sync(self):
-        #Sync the files
-        self.rsync_cmd = ['rsync'] + self.rsync_args + ['--progress', '--outbuf=L', self.source, self.dest]
-        self.p = Popen(self.rsync_cmd, stdout=PIPE, stderr=PIPE)
+        # Sync the files
+        rsync_cmd = ['rsync'] + self.rsync_args + ['--progress', '--outbuf=L', self.source, self.dest]
+        print(rsync_cmd)
+        rsync_child = Popen(rsync_cmd, stdout=PIPE, stderr=PIPE)
         
-        #Catch stdout from RSync in (near) real-time
-        for line_with_whitespace in iter(self.p.stdout.readline, b''):
-            self.line = re.sub( '\s+', ' ', line_with_whitespace).strip() #Remove excess whitespace
+        # Catch stdout from RSync in (near) real-time
+        for line_with_whitespace in iter(rsync_child.stdout.readline, b''):
+            # Remove excess whitespace
+            self.line = re.sub('\s+', ' ', line_with_whitespace).strip()
+            self.line = ""
             self.stdout_block += self.line
 
-            #Calculate percentage by parsing the stdout line
+            # Calculate percentage by parsing the stdout line
             if self.progress_callback:
                 self._parse_progress()
                 self._parse_transfer_rate()
                 self.progress_callback(self.line, self.percent_complete, self.transfer_rate)
 
-        self.stderr_block = '\n'.join(self.p.stderr)
+        self.stderr_block = '\n'.join(str(rsync_child.stderr))
 
-        self.p.poll()
+        rsync_child.poll()
 
-        if self.p.returncode > -1:
-            #Set feedback to 100% complete, for cases when no progress is piped from Rsync stdout
-            self.progress_callback(None, 100.0, self.transfer_rate)
+        if rsync_child.returncode > -1:
+            # Set feedback to 100% complete, for cases when no progress is piped from Rsync stdout
+            if self.progress_callback is not None:
+                self.progress_callback(None, 100.0, self.transfer_rate)
             return True
         else:
             return False
 
     def _parse_progress(self):
-        #Parse line of stdout. If regex matches, calculate the Sync Progress percentage.
-        re_matches = re.findall(r'(to-chk|to-check)=(\d+)/(\d+)', self.line) #e.g. ('to-chk', remaining_files, total_files)
+        # Parse line of stdout. If regex matches, calculate the Sync Progress percentage.
+        # e.g. ('to-chk', remaining_files, total_files)
+        re_matches = re.findall(r'(to-chk|to-check)=(\d+)/(\d+)', self.line)
         if re_matches:
             progress_tuple = re_matches[0]
             self.remaining_files = float(progress_tuple[1])
@@ -85,17 +91,19 @@ class Rsync():
             self.percent_complete = round(100.0 * (1 - (self.remaining_files/self.total_files)), 2)
 
     def _parse_transfer_rate(self):
-        smoothing_effect = 0.1 #0 < smoothing_effect <= 1, 1 implies no smoothing on output
+        # 0 < smoothing_effect <= 1, 1 implies no smoothing on output
+        smoothing_effect = 0.1
+        # e.g. (1000, 'MB') implies 1000MB/s in tuple format
+        rate_tuples = re.findall(r'(\s[0-9]*\.[0-9]+|[0-9]+)(kb|mb|gb|tb)\/s\s', self.line.lower())
+        # rate_tuple * pow(10, value) = bytes/sec
+        rate_conversions = {'kb': 3, 'mb': 6, 'gb': 9, 'tb': 12}
 
-        rate_tuples = re.findall(r'(\s[0-9]*\.[0-9]+|[0-9]+)(kb|mb|gb|tb)\/s\s', self.line.lower()) #e.g. (1000, 'MB') implies 1000MB/s in tuple format
-        rate_conversions = {'kb':3, 'mb':6, 'gb':9, 'tb':12} #rate_tuple * pow(10, value) = bytes/sec
-        
         if rate_tuples:
             if rate_tuples[-1][1] in rate_conversions:
                 rate_tuple = rate_tuples[-1]
                 transfer_rate_sample = float(rate_tuple[0]) * pow(10, rate_conversions[rate_tuple[1]])
-                
-                #Smoothing Function
+
+                # Smoothing Function
                 self.transfer_rate = smoothing_effect * transfer_rate_sample + (1.0-smoothing_effect) * self.transfer_rate
 
     def get_progress(self):
