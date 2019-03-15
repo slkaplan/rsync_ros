@@ -36,14 +36,13 @@ import rospy
 import roslib
 import actionlib
 import os
-from rsync import Rsync
+from .rsync import Rsync
 from rsync_ros.msg import RsyncAction, RsyncResult, RsyncFeedback
 
 roslib.load_manifest('rsync_ros')
 
 
 class RsyncActionServer:
-
     def __init__(self, name):
         self.result = None
         self.rsync = None

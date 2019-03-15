@@ -52,12 +52,14 @@ class Rsync:
     def sync(self):
         # Sync the files
         rsync_cmd = ['rsync'] + self.rsync_args + ['--progress', '--outbuf=L', self.source, self.dest]
+        print(rsync_cmd)
         rsync_child = Popen(rsync_cmd, stdout=PIPE, stderr=PIPE)
         
         # Catch stdout from RSync in (near) real-time
         for line_with_whitespace in iter(rsync_child.stdout.readline, b''):
             # Remove excess whitespace
             self.line = re.sub('\s+', ' ', line_with_whitespace).strip()
+            self.line = ""
             self.stdout_block += self.line
 
             # Calculate percentage by parsing the stdout line
@@ -66,13 +68,14 @@ class Rsync:
                 self._parse_transfer_rate()
                 self.progress_callback(self.line, self.percent_complete, self.transfer_rate)
 
-        self.stderr_block = '\n'.join(rsync_child.stderr)
+        self.stderr_block = '\n'.join(str(rsync_child.stderr))
 
         rsync_child.poll()
 
         if rsync_child.returncode > -1:
             # Set feedback to 100% complete, for cases when no progress is piped from Rsync stdout
-            self.progress_callback(None, 100.0, self.transfer_rate)
+            if self.progress_callback is not None:
+                self.progress_callback(None, 100.0, self.transfer_rate)
             return True
         else:
             return False
@@ -94,12 +97,12 @@ class Rsync:
         rate_tuples = re.findall(r'(\s[0-9]*\.[0-9]+|[0-9]+)(kb|mb|gb|tb)\/s\s', self.line.lower())
         # rate_tuple * pow(10, value) = bytes/sec
         rate_conversions = {'kb': 3, 'mb': 6, 'gb': 9, 'tb': 12}
-        
+
         if rate_tuples:
             if rate_tuples[-1][1] in rate_conversions:
                 rate_tuple = rate_tuples[-1]
                 transfer_rate_sample = float(rate_tuple[0]) * pow(10, rate_conversions[rate_tuple[1]])
-                
+
                 # Smoothing Function
                 self.transfer_rate = smoothing_effect * transfer_rate_sample + (1.0-smoothing_effect) * self.transfer_rate
 
