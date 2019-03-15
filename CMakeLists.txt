@@ -15,7 +15,15 @@ find_package(catkin REQUIRED COMPONENTS
 ## Declare ROS messages, services and actions ##
 ################################################
 
-add_action_files(FILES Rsync.action)
+add_action_files(
+    FILES
+    Rsync.action
+)
+
+add_service_files(
+    FILES
+    RsyncService.srv
+)
 
 generate_messages(
  DEPENDENCIES

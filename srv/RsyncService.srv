@@ -1,0 +1,6 @@
+string local_path
+string target_user
+string target_ip
+string target_path
+---
+bool success
