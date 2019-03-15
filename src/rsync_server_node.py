@@ -33,23 +33,29 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import rospy
-import roslib; roslib.load_manifest('rsync_ros')
+import roslib
 import actionlib
 import os
 from rsync import Rsync
 from rsync_ros.msg import RsyncAction, RsyncResult, RsyncFeedback
 
+roslib.load_manifest('rsync_ros')
+
+
 class RsyncActionServer:
 
     def __init__(self, name):
+        self.result = None
+        self.rsync = None
+        self.feedback = None
         self._action_name = name
         self.server = actionlib.SimpleActionServer(self._action_name, RsyncAction, self.execute, False)
         self.server.start()
         rospy.loginfo("Ready to sync files.")
 
     def progress_update_cb(self, line, percent_complete, transfer_rate):
-        #This is run everytime the progress is published to stdout
-        #rospy.loginfo('Total transfer percentage: {}'.format(percent_complete))
+        # This is run every time the progress is published to stdout
+        # rospy.loginfo('Total transfer percentage: {}'.format(percent_complete))
 
         self.feedback.percent_complete = percent_complete
         self.feedback.transfer_rate = transfer_rate
@@ -57,42 +63,39 @@ class RsyncActionServer:
 
         if line:
             rospy.loginfo(line)
-
-        # check if preempt (cancel action) has been requested by the client
+        # Check if preempt (cancel action) has been requested by the client
         if self.server.is_preempt_requested():
             # Get the process id & try to terminate it gracefuly
             pid = self.rsync.p.pid
             self.rsync.p.terminate()
-
             # Check if the process has really terminated & force kill if not.
             try:
                 os.kill(pid, 0)
                 self.rsync.p.kill()
-                print "Forced kill"
-            except OSError, e:
-                print "Terminated gracefully"
-
+                print("Forced kill")
+            except OSError:
+                print("Terminated gracefully")
 
             rospy.loginfo('%s: Preempted' % self._action_name)
-            self.server.set_preempted() #TO-DO, fix logic error changing states upon preempt request
+            self.server.set_preempted()
+            # TO-DO, fix logic error changing states upon preempt request
 
     def execute(self, goal):
         self.result = RsyncResult()
         self.feedback = RsyncFeedback()
 
-        rospy.loginfo("Executing rsync command '%s %s %s'", 'rsync ' + ' '.join(goal.rsync_args) + ' --progress --outbuf=L', goal.source_path, goal.destination_path)
-
-        self.rsync = Rsync(goal.rsync_args, goal.source_path, goal.destination_path, progress_callback=self.progress_update_cb)
-
+        rospy.loginfo("Executing rsync command '%s %s %s'", 'rsync ' + ' '.join(goal.rsync_args) +
+                      ' --progress --outbuf=L', goal.source_path, goal.destination_path)
+        self.rsync = Rsync(goal.rsync_args, goal.source_path, goal.destination_path,
+                           progress_callback=self.progress_update_cb)
         self.result.sync_success = self.rsync.sync()
 
         if not self.server.is_preempt_requested():
-
             if self.rsync.stderr_block:
                 rospy.logerr('\n{}'.format(self.rsync.stderr_block))
-
             rospy.loginfo("Rsync command result '%s'", self.result.sync_success)
             self.server.set_succeeded(self.result)
+
 
 if __name__ == "__main__":
     try:
