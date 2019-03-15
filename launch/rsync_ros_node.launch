@@ -1,0 +1,4 @@
+<launch>
+  <node name="Rsync_server" type="rsync_service_node_script" pkg="rsync_ros" required="False">
+  </node>
+</launch>
