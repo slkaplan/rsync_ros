@@ -54,4 +54,9 @@ include_directories(
 ## Install ##
 #############
 
-catkin_install_python(PROGRAMS src/rsync_ros/rsync_server_node.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(
+    PROGRAMS
+	    scripts/rsync_service_node_script
+	DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
