@@ -37,7 +37,7 @@ generate_messages(
 
 catkin_package(
  #INCLUDE_DIRS include
- LIBRARIES image_to_file
+ #LIBRARIES image_to_file
  CATKIN_DEPENDS rospy std_msgs message_runtime
 )
 
